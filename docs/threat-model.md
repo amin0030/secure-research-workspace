@@ -1,8 +1,8 @@
-﻿# STRIDE Threat Model — Campus Room Booking System
+# STRIDE Threat Model  Campus Room Booking System
 
 
 
-## 1. Purpose
+## 1\. Purpose
 
 
 
@@ -18,7 +18,7 @@ The threat model focuses on authentication, authorization, booking ownership, co
 
 
 
-## 2. System Overview
+## 2\. System Overview
 
 
 
@@ -27,9 +27,7 @@ The application consists of three independent Python services:
 
 
 1. **Application API:** Authenticates users, checks roles, coordinates requests, and issues scoped authorization credentials.
-
 2. **Booking Service:** Manages rooms, bookings, and confirmations, enforces access control, and owns the SQLite database.
-
 3. **Confirmation Service:** Generates booking confirmations using an installed external Python helper package.
 
 
@@ -38,13 +36,10 @@ The application uses four seeded accounts:
 
 
 
-- Amin: Student
-
-- Casper: Student
-
-- Frank: Student
-
-- Rasmus: Administrator
+* Amin: Student
+* Casper: Student
+* Frank: Student
+* Rasmus: Administrator
 
 
 
@@ -52,7 +47,7 @@ Students can manage their own bookings. The administrator can additionally manag
 
 
 
-## 3. Protected Assets
+## 3\. Protected Assets
 
 
 
@@ -80,7 +75,7 @@ Students can manage their own bookings. The administrator can additionally manag
 
 
 
-## 4. Trust Boundaries
+## 4\. Trust Boundaries
 
 
 
@@ -132,7 +127,7 @@ Only the Booking Service should access the database directly. Database queries m
 
 
 
-## 5. STRIDE Threat Analysis
+## 5\. STRIDE Threat Analysis
 
 
 
@@ -160,7 +155,7 @@ Only the Booking Service should access the database directly. Database queries m
 
 
 
-## 6. Risk Assessment
+## 6\. Risk Assessment
 
 
 
@@ -196,7 +191,7 @@ Authorization violations affecting private bookings and administrator functions 
 
 
 
-## 7. Planned Vulnerability Investigations
+## 7\. Planned Vulnerability Investigations
 
 
 
@@ -260,7 +255,7 @@ Every vulnerability investigation will include an intentionally vulnerable versi
 
 
 
-## 8. Secure Design Principles
+## 8\. Secure Design Principles
 
 
 
@@ -296,7 +291,7 @@ Unknown or unapproved dependencies are rejected during build verification.
 
 
 
-## 9. Security Testing Strategy
+## 9\. Security Testing Strategy
 
 
 
@@ -304,27 +299,19 @@ The security tests will verify:
 
 
 
-- Invalid credentials cannot authenticate.
-
-- Expired or forged authentication tokens are rejected.
-
-- Students cannot access another student's bookings.
-
-- Students cannot perform administrator only operations.
-
-- Protected ownership fields cannot be manipulated.
-
-- Confirmation jobs cannot access unrelated bookings.
-
-- Unapproved dependency artifacts are rejected.
-
-- Conflicting room bookings are prevented.
-
-- Failed authorization attempts and relevant actions are logged without exposing credentials.
+* Invalid credentials cannot authenticate.
+* Expired or forged authentication tokens are rejected.
+* Students cannot access another student's bookings.
+* Students cannot perform administrator only operations.
+* Protected ownership fields cannot be manipulated.
+* Confirmation jobs cannot access unrelated bookings.
+* Unapproved dependency artifacts are rejected.
+* Conflicting room bookings are prevented.
+* Failed authorization attempts and relevant actions are logged without exposing credentials.
 
 
 
-## 10. SSDLC Gate Decisions
+## 10\. SSDLC Gate Decisions
 
 
 
@@ -344,7 +331,7 @@ The security tests will verify:
 
 
 
-## 11. Evidence Collection
+## 11\. Evidence Collection
 
 
 
@@ -352,18 +339,11 @@ Evidence will be collected throughout development and may include:
 
 
 
-- Git commits and tags
-
-- Security test results
-
-- Screenshots of controlled vulnerability experiments
-
-- Logs showing rejected unauthorized requests
-
-- Dependency and static analysis reports
-
-- Jenkins pipeline results
-
-- Architecture and data-flow diagrams
-
+* Git commits and tags
+* Security test results
+* Screenshots of controlled vulnerability experiments
+* Logs showing rejected unauthorized requests
+* Dependency and static analysis reports
+* Jenkins pipeline results
+* Architecture and data-flow diagrams
 
