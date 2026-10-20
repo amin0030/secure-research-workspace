@@ -1,34 +1,40 @@
-# STRIDE Threat Model  Campus Room Booking System
+# STRIDE Threat Model: Campus Room Booking System
 
 
 
-## 1\. Purpose
+## 1. Purpose
 
 
 
-This document identifies potential security threats to the Campus Room Booking System using the STRIDE threat-modelling methodology.
+This document identifies potential security threats to the Campus Room Booking System using the STRIDE threat modelling methodology.
 
 
 
-The purpose is to identify threats before implementation, define security controls, and establish tests that can provide evidence that the controls work.
+The purpose is to identify threats before implementation, define appropriate security controls, and establish tests that can demonstrate whether these controls work.
 
 
 
-The threat model focuses on authentication, authorization, booking ownership, communication between services, and external dependencies.
+The threat model focuses on authentication, authorization, input validation, database operations, booking ownership, communication between services, and external dependencies.
 
 
 
-## 2\. System Overview
+The security investigations are based on three selected vulnerabilities from the course CWE catalog and one additional vulnerability caused by composing independent application services.
 
 
 
-The application consists of three independent Python services:
+## 2. System Overview
+
+
+
+The application consists of three independent Python services communicating through HTTP.
 
 
 
 1. **Application API:** Authenticates users, checks roles, coordinates requests, and issues scoped authorization credentials.
-2. **Booking Service:** Manages rooms, bookings, and confirmations, enforces access control, and owns the SQLite database.
-3. **Confirmation Service:** Generates booking confirmations using an installed external Python helper package.
+
+2. **Booking Service:** Manages rooms, bookings, and confirmations, performs database operations, validates input, and enforces resource ownership.
+
+3. **Confirmation Service:** Generates booking confirmations using an installed external Python helper package and accesses booking records only through authorized requests.
 
 
 
@@ -36,134 +42,305 @@ The application uses four seeded accounts:
 
 
 
-* Amin: Student
-* Casper: Student
-* Frank: Student
-* Rasmus: Administrator
+- **Amin:** Student
+
+- **Casper:** Student
+
+- **Frank:** Student
+
+- **Rasmus:** Administrator
 
 
 
-Students can manage their own bookings. The administrator can additionally manage rooms and access booking metadata, but does not automatically have access to other users' private booking confirmations.
+Students can search for available rooms, create bookings, manage their own reservations, and generate booking confirmations.
 
 
 
-## 3\. Protected Assets
+The administrator can additionally manage rooms and access system wide booking metadata.
 
 
 
-| Asset | Security objective |
+Administrative privileges do not automatically grant access to other students' private booking information or confirmations.
+
+
+
+SQLite provides persistent data storage but is not considered one of the three application components.
+
+
+
+The external helper package is installed as a separate Python dependency used by the Confirmation Service.
+
+
+
+## 3. Protected Assets
+
+
+
+| Asset | Security Objective |
 
 |---|---|
 
-| Student bookings | Confidentiality, integrity |
+| Student bookings | Confidentiality and integrity |
 
-| Booking confirmations | Confidentiality, integrity |
+| Booking confirmations | Confidentiality and integrity |
 
-| Room availability | Integrity, availability |
+| Room availability | Integrity and availability |
 
 | User credentials | Confidentiality |
 
-| Authentication tokens | Confidentiality, integrity |
+| Authentication tokens | Confidentiality and integrity |
 
-| Service authorization credentials | Confidentiality, integrity |
+| Service authorization credentials | Confidentiality, integrity and limited authority |
 
-| SQLite database | Confidentiality, integrity, availability |
+| SQLite database | Confidentiality, integrity and availability |
 
-| External helper package | Integrity |
+| External Python helper package | Integrity |
 
-| Security audit logs | Integrity, accountability |
+| Security audit logs | Integrity and accountability |
 
-
-
-## 4\. Trust Boundaries
+| Test and CI evidence | Integrity and traceability |
 
 
 
-**TB1: Users to Application API**
+Private booking information must only be accessible to users or services with the appropriate authority.
 
 
 
-External clients must not be trusted. The API must validate authentication, roles, and user input.
+Room availability information must remain consistent to prevent conflicting reservations.
 
 
 
-**TB2: Application API to Booking Service**
+Authentication credentials, authorization tokens, and internal service permissions must be protected against unauthorized use.
 
 
 
-The Booking Service must verify scoped authorization and resource permissions. Requests from the API are not automatically trusted.
+## 4. Trust Boundaries
 
 
 
-**TB3: Application API to Confirmation Service**
+### TB1: Users to Application API
 
 
 
-The Confirmation Service must accept only authorized jobs and verify that the credentials match the requested operation.
+The Application API receives requests from students and administrators.
 
 
 
-**TB4: Confirmation Service to Booking Service**
+External input and user supplied information must not be automatically trusted.
 
 
 
-The Booking Service must verify that a confirmation job is authorized to access the specific booking and perform the requested action.
+Security responsibilities:
 
 
 
-**TB5: Confirmation Service to External Package**
+- Validate authentication credentials.
+
+- Verify user identity and role.
+
+- Validate incoming request data.
+
+- Reject missing or invalid authentication.
+
+- Prevent ordinary students from performing administrator operations.
 
 
 
-The helper package is supplied software and must not be trusted with unrestricted access to protected resources.
+### TB2: Application API to Booking Service
 
 
 
-**TB6: Booking Service to SQLite**
+The Booking Service receives requests coordinated by the Application API.
 
 
 
-Only the Booking Service should access the database directly. Database queries must preserve integrity and ownership requirements.
+Requests originating from the API are not automatically authorized.
 
 
 
-## 5\. STRIDE Threat Analysis
+Security responsibilities:
 
 
 
-| ID | STRIDE | Threat | Affected boundary | Security control | Planned evidence |
+- Verify the authorization credentials.
+
+- Verify the requested action and resource.
+
+- Enforce booking ownership.
+
+- Validate booking input and database operations.
+
+- Enforce administrator permissions for restricted operations.
+
+
+
+### TB3: Application API to Confirmation Service
+
+
+
+The Confirmation Service receives requests to generate booking confirmations.
+
+
+
+The service must verify that each job has the required authority.
+
+
+
+Security responsibilities:
+
+
+
+- Verify job authorization.
+
+- Validate the booking identifier.
+
+- Restrict processing to the authorized job.
+
+- Reject requests with missing or invalid credentials.
+
+
+
+### TB4: Confirmation Service to Booking Service
+
+
+
+The Confirmation Service retrieves booking information and saves generated confirmations through the Booking Service.
+
+
+
+The Booking Service must not assume that the Confirmation Service has unrestricted access to booking records.
+
+
+
+Security responsibilities:
+
+
+
+- Verify the intended booking and job.
+
+- Verify the authorized action.
+
+- Verify token audience and expiration.
+
+- Enforce booking ownership.
+
+- Reject access to unrelated bookings.
+
+
+
+This trust boundary is central to the planned cross service authorization vulnerability investigation.
+
+
+
+### TB5: Confirmation Service to External Python Package
+
+
+
+The Confirmation Service executes an independently packaged Python helper dependency.
+
+
+
+The package must not automatically be considered trustworthy merely because it is installed.
+
+
+
+Security responsibilities:
+
+
+
+- Verify approved dependency artifacts during installation.
+
+- Restrict the Confirmation Service's runtime permissions.
+
+- Avoid exposing database files or unrestricted service credentials.
+
+- Limit the data passed to the helper package.
+
+
+
+### TB6: Booking Service to SQLite Database
+
+
+
+The Booking Service is responsible for database access.
+
+
+
+Security responsibilities:
+
+
+
+- Use parameterized SQL queries.
+
+- Prevent unauthorized reading or modification of records.
+
+- Enforce booking constraints.
+
+- Prevent conflicting room reservations.
+
+- Restrict direct database access to the Booking Service.
+
+
+
+## 5. STRIDE Threat Analysis
+
+
+
+STRIDE identifies six categories of security threats: Spoofing, Tampering, Repudiation, Information Disclosure, Denial of Service, and Elevation of Privilege.
+
+
+
+The following threats have been identified for the Campus Room Booking System.
+
+
+
+| ID | STRIDE Category | Threat | Affected Boundary | Security Control | Planned Evidence |
 
 |---|---|---|---|---|---|
 
-| S1 | Spoofing | An attacker impersonates Amin using invalid or forged authentication credentials | TB1 | Password hashing, signed tokens, expiration checks | Invalid and forged tokens are rejected |
+| S1 | Spoofing | An attacker impersonates Amin using invalid or forged authentication credentials | TB1 | Password hashing, signed tokens and expiration verification | Invalid credentials and forged tokens are rejected |
 
-| T1 | Tampering | Frank attempts to change the owner of a booking to Casper | TB1, TB2 | Server controlled ownership and strict input validation | Forged ownership field is rejected |
+| T1 | Tampering | SQL Injection through manipulated room search input affects database query behavior | TB1, TB2, TB6 | Parameterized SQL queries | Manipulated search input cannot alter SQL query structure |
 
-| R1 | Repudiation | A user denies cancelling a booking | TB1, TB2 | Audit logs recording user identity, booking ID, action and time | Cancellation produces an audit record |
+| T2 | Tampering | A booking is created with invalid start and end times | TB1, TB2 | Input validation and booking constraints | Invalid booking times are rejected |
 
-| I1 | Information Disclosure | Amin accesses Casper's private booking by changing its ID | TB2 | Resource ownership validation | Cross user booking access is denied |
+| T3 | Tampering | A user attempts to modify the owner of a booking | TB1, TB2 | Server controlled ownership | Forged ownership information is rejected |
 
-| D1 | Denial of Service | Repeated or oversized requests overload the application | TB1 | Input limits, timeouts and request limits | Oversized requests are rejected |
+| R1 | Repudiation | A user denies cancelling a booking | TB1, TB2 | Audit logging with authenticated identity and timestamps | Cancellation creates an audit record |
 
-| E1 | Elevation of Privilege | Frank attempts to manage rooms using an administrator only endpoint | TB1, TB2 | Role-based access control enforced by API and Booking Service | Student receives HTTP 403 |
+| I1 | Information Disclosure | Amin accesses a private booking belonging to Casper | TB2 | Booking ownership verification | Cross user access is denied |
 
-| E2 | Elevation of Privilege | Confirmation Service uses excessive service privileges to retrieve an unrelated booking | TB4 | Job scoped credentials and resource level authorization | Unrelated booking request is denied |
+| I2 | Information Disclosure | Confirmation Service accesses an unrelated private booking | TB4 | Booking and job scoped authorization | Unauthorized internal request is denied |
 
-| T2 | Tampering | An unapproved or modified helper package is installed | TB5 | Dependency declarations and approved artifact verification | Altered dependency artifact is rejected |
+| D1 | Denial of Service | Oversized or repeated requests consume excessive resources | TB1 | Input size restrictions, timeouts and request limits | Oversized requests are rejected |
 
-| T3 | Tampering | Two overlapping bookings are accepted for the same room | TB6 | Transactional availability checking | Conflicting booking is rejected |
+| E1 | Elevation of Privilege | Frank attempts to perform administrator operations | TB1, TB2 | Role based access control | Student receives HTTP 403 |
 
+| E2 | Elevation of Privilege | Confirmation Service uses excessive internal permissions | TB4 | Limited service credentials and independent resource authorization | Unrelated booking request is rejected |
 
+| T4 | Tampering | A modified or unapproved helper package is installed | TB5 | Artifact integrity verification | Modified dependency artifact is rejected |
 
-## 6\. Risk Assessment
-
-
-
-The following qualitative risk levels are initial estimates. They will be reviewed during security testing.
+| T5 | Tampering | Two overlapping reservations are accepted for the same room | TB6 | Transactional availability checking | Conflicting booking is rejected |
 
 
 
-| Threat ID | Likelihood | Impact | Initial priority |
+The identified threats will guide implementation decisions and security testing.
+
+
+
+## 6. Risk Assessment
+
+
+
+The following risk levels are initial qualitative estimates based on the potential likelihood and impact of each threat.
+
+
+
+They will be reviewed during implementation and testing.
+
+
+
+| Threat ID | Likelihood | Impact | Initial Priority |
 
 |---|---|---|---|
 
@@ -171,67 +348,249 @@ The following qualitative risk levels are initial estimates. They will be review
 
 | T1 | Medium | High | High |
 
+| T2 | Medium | Medium | Medium |
+
+| T3 | Medium | High | High |
+
 | R1 | Medium | Medium | Medium |
 
 | I1 | High | High | High |
+
+| I2 | Medium | High | High |
 
 | D1 | Medium | Medium | Medium |
 
 | E1 | Medium | High | High |
 
-| E2 | High | High | High |
+| E2 | Medium | High | High |
 
-| T2 | Medium | High | High |
+| T4 | Medium | High | High |
 
-| T3 | Medium | Medium | Medium |
-
-
-
-Authorization violations affecting private bookings and administrator functions are considered high-priority threats.
+| T5 | Medium | Medium | Medium |
 
 
 
-## 7\. Planned Vulnerability Investigations
+Unauthorized access to student bookings and excessive internal service privileges are considered high priority because they can expose protected resources belonging to different users.
 
 
 
-The implementation will investigate four deliberately introduced vulnerabilities.
+SQL Injection is also considered high priority because it can compromise the confidentiality or integrity of data stored in SQLite.
 
 
 
-### V1: Insecure Direct Object Reference (IDOR)
+Improper Input Validation can affect the correctness and consistency of room reservations.
 
 
 
-A student attempts to access another student's booking by changing the booking identifier.
+## 7. Planned Vulnerability Investigations
 
 
 
-**Security requirement:** Booking ownership must be verified on every protected resource operation.
+The project will intentionally introduce and investigate four vulnerabilities.
 
 
 
-### V2: Privilege Escalation
+The first three are selected from the course CWE vulnerability catalog.
 
 
 
-An ordinary student attempts to perform an administrator-only action, such as modifying room availability.
+The fourth vulnerability specifically investigates a security failure caused by composing independent application services.
 
 
 
-**Security requirement:** Administrative operations require independently verified administrator authority.
+### V1: CWE-862 Missing Authorization
 
 
 
-### V3: Mass Assignment
+**Vulnerability description:**
 
 
 
-A student attempts to manipulate protected booking fields, such as the booking owner.
+Amin attempts to retrieve a private booking belonging to Casper by modifying the requested booking identifier.
 
 
 
-**Security requirement:** Ownership must be assigned by the server using the authenticated identity.
+The vulnerable Booking Service retrieves and returns the booking without verifying whether Amin owns it.
+
+
+
+**Security assumption violated:**
+
+
+
+An authenticated user is assumed to be authorized to access the requested resource.
+
+
+
+**Underlying factor:**
+
+
+
+Missing resource ownership validation.
+
+
+
+**Potential impact:**
+
+
+
+Unauthorized disclosure of another student's booking information.
+
+
+
+**Security control:**
+
+
+
+The Booking Service verifies the authenticated user and the ownership of every protected booking.
+
+
+
+**Planned test:**
+
+
+
+Amin attempts to access Casper's booking.
+
+
+
+The vulnerable implementation exposes the booking.
+
+
+
+The secure implementation denies the request with HTTP 403 or 404.
+
+
+
+### V2: CWE-89 SQL Injection
+
+
+
+**Vulnerability description:**
+
+
+
+Frank submits manipulated input through the room search functionality.
+
+
+
+The vulnerable Booking Service constructs an SQL statement by combining untrusted search input directly with SQL syntax.
+
+
+
+**Security assumption violated:**
+
+
+
+User controlled input is assumed to remain ordinary data when included in a database query.
+
+
+
+**Underlying factor:**
+
+
+
+SQL statement construction without parameterized queries.
+
+
+
+**Potential impact:**
+
+
+
+An attacker may influence database queries and potentially access or modify information outside the intended search functionality.
+
+
+
+**Security control:**
+
+
+
+The Booking Service uses parameterized SQL statements so that user supplied values remain data rather than executable SQL syntax.
+
+
+
+**Planned test:**
+
+
+
+A controlled SQL Injection test is performed against the vulnerable room search endpoint using synthetic data.
+
+
+
+The vulnerable implementation demonstrates altered SQL query behavior.
+
+
+
+The corrected implementation processes the same input as data without changing the intended query structure.
+
+
+
+### V3: CWE-20 Improper Input Validation
+
+
+
+**Vulnerability description:**
+
+
+
+A user attempts to create a booking with an end time earlier than its start time.
+
+
+
+The vulnerable Booking Service accepts the request without verifying the booking time constraints.
+
+
+
+**Security assumption violated:**
+
+
+
+User supplied booking information is assumed to satisfy the required constraints.
+
+
+
+**Underlying factor:**
+
+
+
+Insufficient validation of input values and booking semantics.
+
+
+
+**Potential impact:**
+
+
+
+Invalid reservations can be stored, affecting data integrity and room availability.
+
+
+
+**Security control:**
+
+
+
+The Booking Service validates booking times before database operations.
+
+
+
+The start time must be earlier than the end time.
+
+
+
+**Planned test:**
+
+
+
+A booking request is submitted with invalid start and end times.
+
+
+
+The vulnerable implementation accepts the booking.
+
+
+
+The corrected implementation rejects the request with a validation error.
 
 
 
@@ -239,23 +598,107 @@ A student attempts to manipulate protected booking fields, such as the booking o
 
 
 
-The Confirmation Service attempts to retrieve an unrelated booking using excessive internal service authority.
+**Vulnerability description:**
 
 
 
-**Security requirement:** Authorization between services must be bound to the intended action, booking, job, and validity period.
+The Confirmation Service receives permission to generate a confirmation for one specific booking.
 
 
 
-The first three vulnerability types must be verified against the course vulnerability catalog before implementing the experiments.
+The vulnerable implementation gives the Confirmation Service excessive internal permissions, allowing it to request an unrelated booking from the Booking Service.
 
 
 
-Every vulnerability investigation will include an intentionally vulnerable version, evidence of the violation, a security fix, and a regression test.
+**Security assumption violated:**
 
 
 
-## 8\. Secure Design Principles
+A trusted internal service is assumed to be authorized to access any booking required by its requests.
+
+
+
+**Underlying factor:**
+
+
+
+Excessive service privileges and missing authorization enforcement across component boundaries.
+
+
+
+**Potential impact:**
+
+
+
+The Confirmation Service can access private booking information outside the authority of its assigned job.
+
+
+
+**Security control:**
+
+
+
+The Application API issues credentials restricted to the intended service, booking, action, job, and validity period.
+
+
+
+The Booking Service independently validates this authority before returning or modifying records.
+
+
+
+**Planned test:**
+
+
+
+The Confirmation Service is authorized to process Amin's booking.
+
+
+
+During the controlled experiment, it attempts to retrieve Casper's booking.
+
+
+
+The vulnerable implementation allows the unauthorized access.
+
+
+
+The corrected implementation rejects the unrelated request while still allowing the legitimate confirmation job to complete.
+
+
+
+### Experiment and Evidence Strategy
+
+
+
+Each vulnerability investigation will include:
+
+
+
+1. An intentionally vulnerable implementation.
+
+2. A controlled demonstration using synthetic data.
+
+3. Evidence of the violated security assumption.
+
+4. A documented remediation.
+
+5. A regression test demonstrating that the vulnerability is mitigated.
+
+
+
+The vulnerable and corrected versions will be preserved through Git commits and relevant tags.
+
+
+
+Experiments will run only in an isolated local test environment.
+
+
+
+The final implementation must enforce the documented security requirements.
+
+
+
+## 8. Secure Design Principles
 
 
 
@@ -263,11 +706,19 @@ Every vulnerability investigation will include an intentionally vulnerable versi
 
 
 
-Each service receives only the permissions necessary to perform its responsibilities.
+Each user and component receives only the authority necessary to perform its intended operations.
 
 
 
-The Confirmation Service must not have unrestricted database access or unrestricted access to all bookings.
+The Confirmation Service must not have unrestricted database access or unrestricted permission to retrieve all bookings.
+
+
+
+**Planned evidence:**
+
+
+
+A cross service authorization test verifies that Confirmation Service cannot access an unrelated booking.
 
 
 
@@ -275,7 +726,19 @@ The Confirmation Service must not have unrestricted database access or unrestric
 
 
 
-The Booking Service validates authorization for every protected booking and confirmation operation, including requests originating from other internal services.
+Every protected booking operation requires authorization verification.
+
+
+
+The Booking Service enforces permissions for requests from both the Application API and the Confirmation Service.
+
+
+
+**Planned evidence:**
+
+
+
+Authorization tests demonstrate that unauthorized booking access is rejected regardless of which service initiates the request.
 
 
 
@@ -283,67 +746,156 @@ The Booking Service validates authorization for every protected booking and conf
 
 
 
-Operations are rejected when authorization is missing, invalid, expired, or insufficient.
+Operations must be rejected when authentication, authorization, or required input validation is missing or invalid.
 
 
 
-Unknown or unapproved dependencies are rejected during build verification.
+Unapproved dependencies must also be rejected during build verification.
 
 
 
-## 9\. Security Testing Strategy
+**Planned evidence:**
 
 
 
-The security tests will verify:
+Tests verify that missing tokens, expired credentials, invalid booking data, and unauthorized dependency artifacts are rejected.
 
 
 
-* Invalid credentials cannot authenticate.
-* Expired or forged authentication tokens are rejected.
-* Students cannot access another student's bookings.
-* Students cannot perform administrator only operations.
-* Protected ownership fields cannot be manipulated.
-* Confirmation jobs cannot access unrelated bookings.
-* Unapproved dependency artifacts are rejected.
-* Conflicting room bookings are prevented.
-* Failed authorization attempts and relevant actions are logged without exposing credentials.
+## 9. Security Testing Strategy
 
 
 
-## 10\. SSDLC Gate Decisions
+Security testing will include:
 
 
 
-**Requirements gate:** The architecture, assets, trust boundaries, permissions and threats must be documented.
+- Authentication tests using valid and invalid credentials.
+
+- Verification of signed token validity and expiration.
+
+- Resource ownership tests between Amin, Casper, and Frank.
+
+- Administrator authorization tests using Rasmus and ordinary student accounts.
+
+- CWE-862 Missing Authorization vulnerability demonstrations and regression tests.
+
+- CWE-89 SQL Injection vulnerability demonstrations and regression tests.
+
+- CWE-20 Improper Input Validation demonstrations and regression tests.
+
+- Cross Service Authorization Bypass demonstrations and regression tests.
+
+- Tests verifying that booking ownership cannot be manipulated.
+
+- Tests preventing overlapping room bookings.
+
+- Dependency integrity verification.
+
+- Functional tests demonstrating successful confirmation generation through all three services.
+
+- Logging tests verifying that security relevant operations are recorded without exposing credentials.
 
 
 
-**Implementation/build gate:** The three components must build successfully, and unexpected or unapproved artifacts must be rejected.
+Security tests will be automated using pytest.
 
 
 
-**Testing gate:** All required functional and authorization tests must pass. Confirmed security violations must be fixed, and malformed artifacts must be rejected.
+Static analysis, dependency analysis, and functional and authorization tests will be integrated into the Jenkins pipeline.
 
 
 
-**Release gate:** Security evidence, Git history, dependency analysis and CI results must be reviewed before considering the implementation ready for release.
+## 10. SSDLC Gate Decisions
 
 
 
-## 11\. Evidence Collection
+### Requirements Gate
 
 
 
-Evidence will be collected throughout development and may include:
+The system architecture, requirements, assets, trust boundaries, user roles, permissions, and relevant security threats must be documented before implementation.
 
 
 
-* Git commits and tags
-* Security test results
-* Screenshots of controlled vulnerability experiments
-* Logs showing rejected unauthorized requests
-* Dependency and static analysis reports
-* Jenkins pipeline results
-* Architecture and data-flow diagrams
+### Implementation and Build Gate
 
+
+
+All three services must build successfully.
+
+
+
+Dependencies must be declared and approved.
+
+
+
+Modified, unexpected, or unapproved dependency artifacts must be rejected.
+
+
+
+### Testing Gate
+
+
+
+All required functional and security tests must pass.
+
+
+
+Confirmed authorization violations must be corrected.
+
+
+
+The three selected CWE vulnerabilities and the additional composition vulnerability must be demonstrated, documented, and mitigated.
+
+
+
+Malformed or unauthorized inputs must be rejected.
+
+
+
+### Release Gate
+
+
+
+The final implementation must satisfy the documented security requirements.
+
+
+
+Git history, vulnerability evidence, test results, static analysis, dependency analysis, and Jenkins pipeline results must be reviewed.
+
+
+
+Production deployment requirements must be discussed in the final report.
+
+
+
+## 11. Evidence Collection
+
+
+
+The following evidence will be collected during implementation and testing:
+
+
+
+- Git commits and relevant tags
+
+- Architecture and data flow diagrams
+
+- Access Control Matrix
+
+- STRIDE Threat Model
+
+- Security test results
+
+- Screenshots of controlled vulnerability demonstrations
+
+- Logs of rejected unauthorized requests
+
+- Functional test results
+
+- Static analysis reports
+
+- Dependency analysis reports
+
+- Jenkins pipeline results

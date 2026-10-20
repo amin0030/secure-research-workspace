@@ -1,6 +1,6 @@
 ﻿
 
-# Requirements and Asset Register   Campus Room Booking System
+# Requirements and Asset Register: Campus Room Booking System
 
 
 
@@ -8,31 +8,31 @@
 
 
 
-The Campus Room Booking System is a Python application
-
-that allows university students to reserve study rooms,
-
-manage their bookings, and generate booking confirmations.
+The Campus Room Booking System is a Python application that allows university students to search for available study rooms, create and manage bookings, and generate booking confirmations.
 
 
 
-The system focuses on authentication, authorization,
-
-resource ownership, secure service communication,
-
-and controlled vulnerability investigations.
+The application focuses on authentication, authorization, resource ownership, input validation, database security, and secure communication between independently running services.
 
 
 
-The application will use synthetic data and seeded
+The project will investigate three selected vulnerabilities from the course CWE vulnerability catalog and one additional vulnerability caused by composing independent application services.
 
-accounts. Public hosting, user registration, payment
 
-processing, and email delivery are outside the scope.
+
+The application will use synthetic data and seeded accounts.
+
+
+
+Public hosting, user registration, payment processing, graphical interfaces, and email delivery are outside the scope.
 
 
 
 ## 2. Users and Roles
+
+
+
+The system uses four seeded accounts.
 
 
 
@@ -50,15 +50,15 @@ processing, and email delivery are outside the scope.
 
 
 
-Students can manage their own bookings and confirmations.
+Students can search for study rooms, create bookings, manage their own reservations, and generate booking confirmations.
 
 
 
-The administrator can manage rooms and view system-wide
+The administrator can additionally manage room availability and view system wide booking metadata.
 
-booking metadata but does not automatically have access
 
-to other users' private booking confirmations.
+
+Administrative privileges do not automatically grant access to other students' private booking details or confirmations.
 
 
 
@@ -72,25 +72,35 @@ to other users' private booking confirmations.
 
 | FR1 | User authentication | Seeded users can log in with valid credentials |
 
-| FR2 | View available rooms | Authenticated users can retrieve room availability |
+| FR2 | View and search available rooms | Authenticated users can retrieve and search available study rooms |
 
-| FR3 | Create bookings | Users can reserve an available room |
+| FR3 | Create bookings | Authenticated users can reserve available rooms using valid booking information |
 
 | FR4 | Manage bookings | Users can view and cancel their own bookings |
 
-| FR5 | Generate confirmations | All three services participate in confirmation generation |
+| FR5 | Generate confirmations | All three application services participate in confirmation generation |
 
-| FR6 | Retrieve confirmations | Users can retrieve their own confirmations |
+| FR6 | Retrieve confirmations | Users can retrieve confirmations belonging to their own bookings |
 
-| FR7 | Admin room management | Only the administrator can create or modify rooms |
+| FR7 | Administrator room management | Only the administrator can create or modify rooms |
 
-| FR8 | Admin audit metadata | Only the administrator can retrieve system wide booking metadata |
+| FR8 | Administrator booking metadata | Only the administrator can retrieve system wide booking metadata |
 
 | FR9 | Prevent booking conflicts | Overlapping active bookings for the same room are rejected |
 
+| FR10 | Validate booking times | Bookings with invalid start and end times are rejected |
 
 
-## 4. Non-Functional Requirements
+
+The confirmation generation functionality must involve the Application API, Booking Service, and Confirmation Service.
+
+
+
+The system must protect bookings and confirmations belonging to different users.
+
+
+
+## 4. Non Functional and Security Requirements
 
 
 
@@ -98,29 +108,39 @@ to other users' private booking confirmations.
 
 |---|---|---|
 
-| NFR1 | Three independent services | Verify three separate running Docker containers communicating over HTTP |
+| NFR1 | Three independent services | Verify three separately running Docker containers communicating through HTTP |
 
-| NFR2 | Authentication enforcement | Requests without valid authentication are rejected |
+| NFR2 | Authentication enforcement | Requests requiring authentication reject missing or invalid credentials |
 
 | NFR3 | Resource level authorization | Cross user booking and confirmation access is denied |
 
-| NFR4 | Least privilege | Services receive only the authority required for their operations |
+| NFR4 | Least privilege | Services receive only the permissions required for their responsibilities |
 
-| NFR5 | Secure service communication | Scoped credentials bind service, action, resource and expiration |
+| NFR5 | Secure service authorization | Credentials bind the receiving service, action, resource or job, and expiration |
 
-| NFR6 | Input validation | Malformed and unauthorized input is rejected |
+| NFR6 | Input validation | Invalid booking times and malformed input are rejected |
 
-| NFR7 | Reproducible builds | Documented builds use approved and pinned dependencies |
+| NFR7 | SQL Injection prevention | Database queries use parameterized SQL statements |
 
-| NFR8 | Dependency integrity | Unapproved or modified dependency artifacts are rejected |
+| NFR8 | Server controlled ownership | Users cannot assign bookings to another user through input fields |
 
-| NFR9 | Automated testing | Functional and authorization tests run in a fresh environment |
+| NFR9 | Reproducible builds | Builds use declared and approved dependencies with pinned versions |
 
-| NFR10 | CI/CD security gates | Jenkins runs on pushes and pull requests and blocks defined failures |
+| NFR10 | Dependency integrity | Unexpected, modified, or unapproved dependency artifacts are rejected |
 
-| NFR11 | Evidence preservation | Tests, security findings and pipeline results are saved |
+| NFR11 | Automated testing | Functional and authorization tests execute in a fresh environment |
 
-| NFR12 | Auditability | Security relevant operations produce useful logs without exposing credentials |
+| NFR12 | CI/CD security gates | Jenkins runs on pushes and pull requests and blocks defined security failures |
+
+| NFR13 | Evidence preservation | Test results, security findings, and pipeline reports are saved as artifacts |
+
+| NFR14 | Auditability | Relevant security operations produce logs without exposing credentials |
+
+| NFR15 | Booking integrity | Concurrent or conflicting booking attempts cannot create overlapping active reservations |
+
+
+
+The final implementation must enforce these requirements through application logic, established security libraries, database constraints, and deployment configuration.
 
 
 
@@ -134,9 +154,9 @@ to other users' private booking confirmations.
 
 | A1 | Student bookings | Booking Service | Confidentiality and integrity | Unauthorized access or modification |
 
-| A2 | Booking confirmations | Booking Service | Confidentiality and integrity | Cross user disclosure |
+| A2 | Booking confirmations | Booking Service | Confidentiality and integrity | Cross user information disclosure |
 
-| A3 | Room availability | Booking Service | Integrity and availability | Conflicting or unauthorized bookings |
+| A3 | Room availability | Booking Service | Integrity and availability | Invalid or conflicting bookings |
 
 | A4 | User credentials | Application API | Confidentiality | Credential theft or impersonation |
 
@@ -144,11 +164,25 @@ to other users' private booking confirmations.
 
 | A6 | Service authorization credentials | Application API issues; receiving services verify | Integrity and limited authority | Cross service privilege abuse |
 
-| A7 | SQLite database | Booking Service | Confidentiality, integrity and availability | Unauthorized access or data corruption |
+| A7 | SQLite database | Booking Service | Confidentiality, integrity and availability | SQL Injection or unauthorized data access |
 
-| A8 | External helper package | Confirmation Service | Integrity | Supply-chain tampering |
+| A8 | External Python helper package | Confirmation Service | Integrity | Supply chain tampering |
 
-| A9 | Audit and test evidence | Development and CI environment | Integrity and traceability | Missing or altered evidence |
+| A9 | Audit logs | Relevant services | Integrity and accountability | Missing or manipulated security records |
+
+| A10 | Test and CI evidence | Development and CI environment | Integrity and traceability | Missing or modified evidence |
+
+
+
+The Booking Service owns the protected room and booking records.
+
+
+
+The Confirmation Service must not receive direct SQLite database access.
+
+
+
+The Application API establishes user identity and issues limited authorization credentials.
 
 
 
@@ -156,127 +190,339 @@ to other users' private booking confirmations.
 
 
 
-### Component 1 - Application API
+The application consists of three independently running Python services.
 
 
 
-- Authenticates users.
+### Component 1: Application API
 
-- Establishes user identity and role.
 
-- Coordinates booking and confirmation requests.
 
-- Issues scoped and time-limited authorization credentials.
+Responsibilities:
 
-- Does not access SQLite directly.
 
 
+- Authenticate users.
 
-### Component 2 - Booking Service
+- Establish user identity and role.
 
+- Coordinate booking and confirmation requests.
 
+- Authorize user requested operations.
 
-- Owns the SQLite database.
+- Issue scoped and time limited service authorization credentials.
 
-- Stores rooms, bookings and confirmations.
+- Forward requests to the appropriate internal service.
 
-- Checks room availability and booking conflicts.
 
-- Enforces ownership and administrator permissions.
 
-- Independently validates internal authorization requests.
+Security responsibilities:
 
 
 
-### Component 3 - Confirmation Service
+- Reject unauthenticated requests.
 
+- Protect authentication credentials.
 
+- Verify administrator permissions.
 
-- Receives authorized confirmation jobs.
+- Avoid issuing credentials broader than the requested operation.
 
-- Retrieves only the permitted booking.
 
-- Generates confirmations using the installed helper package.
 
-- Saves results through the Booking Service.
+The Application API must not access SQLite directly.
 
-- Has no direct SQLite database access.
 
 
+### Component 2: Booking Service
 
-## 7. Data Flow
 
 
+Responsibilities:
 
-The primary confirmation workflow involves all three
 
-application components:
 
+- Own and manage the SQLite database.
 
+- Store rooms, bookings, and confirmation records.
 
-1. The user authenticates through the Application API.
+- Search for available study rooms.
 
-2. The user requests confirmation of an owned booking.
+- Create, retrieve, and cancel bookings.
 
-3. The API verifies user authority and creates limited
+- Validate booking time constraints.
 
-&#x20;  authorization credentials.
+- Prevent overlapping reservations.
 
-4. The API sends an authorized job to Confirmation Service.
+- Store and retrieve booking confirmations.
 
-5. Confirmation Service requests the permitted booking
 
-&#x20;  from Booking Service.
 
-6. Booking Service independently verifies the permissions.
+Security responsibilities:
 
-7. Confirmation Service uses the installed helper package
 
-&#x20;  to generate the confirmation.
 
-8. Confirmation Service stores the result through Booking
+- Independently verify authorization.
 
-&#x20;  Service using job scoped authorization.
+- Enforce booking ownership.
 
-9. The user retrieves the result through Application API.
+- Enforce administrator permissions.
 
+- Use parameterized SQL queries.
 
+- Validate input before performing sensitive operations.
 
-The system architecture and trust boundaries are shown
+- Reject unauthorized internal service requests.
 
-in the diagrams stored under docs/diagrams/.
 
 
+Only the Booking Service should access the SQLite database directly.
 
-## 8. Planned Security Investigations
 
 
+### Component 3: Confirmation Service
 
-The project will investigate:
 
 
+Responsibilities:
 
-- V1: Insecure Direct Object Reference (IDOR).
 
-- V2: Privilege Escalation.
 
-- V3: Mass Assignment.
+- Receive authorized confirmation generation jobs.
 
-- V4: Cross-Service Authorization Bypass.
+- Retrieve the booking associated with the authorized job.
 
+- Generate confirmations using an installed Python helper package.
 
+- Save confirmation results through the Booking Service.
 
-The first three vulnerability types must be confirmed
+- Return job completion information.
 
-against the course vulnerability catalog.
 
 
+Security responsibilities:
 
-Each experiment will include a vulnerable version,
 
-a controlled demonstration, a security fix, and a
 
-regression test.
+- Verify authorization for each job.
+
+- Process only the permitted booking.
+
+- Use job scoped credentials when communicating with the Booking Service.
+
+- Avoid unrestricted access to protected records.
+
+- Operate without direct SQLite database access.
+
+
+
+### External Dependency
+
+
+
+The Confirmation Service uses a small, independently packaged Python helper package to format booking confirmations.
+
+
+
+The package must be declared and installed as a dependency rather than copied directly into the Confirmation Service source code.
+
+
+
+The build process must verify approved dependencies and reject unapproved or modified artifacts.
+
+
+
+## 7. Data Flow and Trust Boundaries
+
+
+
+The primary confirmation workflow involves all three application services.
+
+
+
+1. Amin authenticates through the Application API.
+
+2. Amin requests a booking confirmation for his own reservation.
+
+3. The Application API verifies Amin's identity and authority.
+
+4. The Application API issues limited authorization credentials.
+
+5. The Application API sends an authorized confirmation job to the Confirmation Service.
+
+6. The Confirmation Service requests the permitted booking from the Booking Service.
+
+7. The Booking Service independently verifies the requested action, booking ownership, job authority, and credential validity.
+
+8. The Booking Service returns the authorized booking information.
+
+9. The Confirmation Service uses the external helper package to generate a confirmation.
+
+10. The Confirmation Service stores the result through the Booking Service using scoped authorization.
+
+11. Amin retrieves his confirmation through the Application API.
+
+
+
+The following trust boundaries are identified:
+
+
+
+- TB1: User to Application API
+
+- TB2: Application API to Booking Service
+
+- TB3: Application API to Confirmation Service
+
+- TB4: Confirmation Service to Booking Service
+
+- TB5: Confirmation Service to external helper package
+
+- TB6: Booking Service to SQLite database
+
+
+
+The system architecture and data flow diagrams are stored under docs/diagrams/.
+
+
+
+## 8. Planned Security Vulnerability Investigations
+
+
+
+The project will intentionally introduce and investigate four vulnerabilities.
+
+
+
+Three vulnerabilities are selected from the course CWE vulnerability catalog.
+
+
+
+The fourth vulnerability investigates a security weakness arising from composing independent application services.
+
+
+
+### V1: CWE-862 Missing Authorization
+
+
+
+Amin attempts to access a booking belonging to Casper by changing the requested booking identifier.
+
+
+
+The vulnerable implementation does not verify ownership before returning the protected booking.
+
+
+
+The secure implementation performs resource ownership validation in the Booking Service.
+
+
+
+Expected security test:
+
+
+
+Amin must not be able to retrieve Casper's private booking.
+
+
+
+### V2: CWE-89 SQL Injection
+
+
+
+Frank submits manipulated input through the room search functionality.
+
+
+
+The vulnerable implementation constructs SQL statements using untrusted user input.
+
+
+
+The secure implementation uses parameterized SQL queries.
+
+
+
+Expected security test:
+
+
+
+Manipulated search input must not alter the intended SQL query structure or allow unauthorized database operations.
+
+
+
+### V3: CWE-20 Improper Input Validation
+
+
+
+A user attempts to create a booking with an end time earlier than its start time.
+
+
+
+The vulnerable implementation accepts invalid booking data.
+
+
+
+The secure implementation validates booking time constraints before storing reservations.
+
+
+
+Expected security test:
+
+
+
+Bookings with invalid start and end times must be rejected.
+
+
+
+### V4: Cross Service Authorization Bypass
+
+
+
+The Confirmation Service attempts to retrieve a booking unrelated to its authorized confirmation job.
+
+
+
+The vulnerable implementation grants excessive internal service authority.
+
+
+
+The secure implementation uses credentials restricted to the intended service, booking, action, job, and validity period.
+
+
+
+Expected security test:
+
+
+
+The Confirmation Service must not retrieve unrelated booking records.
+
+
+
+The legitimate confirmation workflow must continue to work after remediation.
+
+
+
+### Additional Security Tests
+
+
+
+The application will also test:
+
+
+
+- Students cannot perform administrator only operations.
+
+- Users cannot manipulate booking ownership fields.
+
+- Missing or expired authorization credentials are rejected.
+
+- Conflicting bookings are prevented.
+
+- Unapproved dependency artifacts are rejected.
+
+
+
+These additional tests support the overall security requirements without replacing the four selected vulnerability investigations.
 
 
 
@@ -284,67 +530,97 @@ regression test.
 
 
 
-The requirements phase is ready for approval when:
+The requirements phase is ready for approval when the following conditions are satisfied:
 
 
 
 - Functional operations are documented.
 
-- Non functional requirements are defined.
+- Non functional and security requirements are defined.
 
-- The asset register is complete.
+- The asset register identifies important protected resources.
 
-- All three independent services have distinct responsibilities.
+- Three independent application services have distinct responsibilities.
 
-- User roles and resource ownership rules are defined.
+- User identities, roles, and ownership rules are defined.
 
-- An access-control matrix exists.
+- The access control matrix documents permitted and forbidden operations.
 
-- A STRIDE threat analysis exists.
+- The STRIDE threat analysis identifies relevant threats and proposed controls.
 
-- Architecture and data-flow diagrams are documented.
+- Architecture and data flow diagrams are available.
 
-- Relevant threats have proposed controls and planned tests.
+- The selected vulnerabilities match the course requirements.
 
+- Planned security controls are connected to tests and evidence.
 
-
-Gate decision: PENDING REVIEW
-
-
-
-The gate decision will be updated after reviewing the
-
-requirements documents and confirming their consistency.
+- The build and testing gates are defined.
 
 
 
-## 10. Traceability and Evidence
+**Gate Decision: PENDING FINAL REVIEW**
 
 
 
-The development process follows:
+The requirements gate will be approved after reviewing consistency between the initial plan, threat model, access control matrix, requirements, and architecture diagrams.
 
 
 
-Asset -> Threat -> Requirement/Control ->
-
-Lifecycle Activity -> Test/Evidence -> Gate Decision
+Implementation must not begin before the requirements gate is reviewed.
 
 
 
-Evidence will be collected using Git commits, automated
-
-tests, vulnerability demonstrations, security scans,
-
-Jenkins results, and documentation.
+## 10. SSDLC Traceability and Evidence
 
 
 
-The final report will reference these artifacts to
+The development process follows the required traceability structure:
 
-explain security decisions and demonstrate compliance
 
-with the assignment requirements.
+
+Asset → Threat → Requirement or Control → Lifecycle Activity → Test or Evidence → Gate Decision
+
+
+
+| Asset | Threat | Requirement or Control | Lifecycle Activity | Test or Evidence | Gate |
+
+|---|---|---|---|---|---|
+
+| Student bookings | CWE-862 Missing Authorization | Ownership validation | Implementation and testing | Cross user access test | Block on failure |
+
+| SQLite data | CWE-89 SQL Injection | Parameterized SQL statements | Implementation and testing | SQL Injection regression test | Block on failure |
+
+| Booking integrity | CWE-20 Improper Input Validation | Booking time validation | Implementation and testing | Invalid booking test | Block on failure |
+
+| Service authority | Cross Service Authorization Bypass | Job scoped authorization | Architecture and testing | Unauthorized internal request test | Block on failure |
+
+| Administrator operations | Unauthorized privilege use | Role verification | Implementation and testing | Student administrator access test | Block on failure |
+
+| Helper dependency | Unapproved software artifact | Dependency integrity verification | Build and testing | Modified artifact rejection test | Block on failure |
+
+
+
+Evidence will be preserved through:
+
+
+
+- Git commits and relevant tags
+
+- Architecture and data flow diagrams
+
+- Functional and authorization tests
+
+- Controlled vulnerability demonstrations
+
+- Regression test reports
+
+- Static analysis results
+
+- Dependency analysis results
+
+- Jenkins pipeline artifacts
+
+- Screenshots of important implementation and security testing milestones
 
 
 
