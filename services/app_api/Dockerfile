@@ -12,7 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 RUN useradd --uid 10001 --no-create-home --shell /usr/sbin/nologin appuser
 
-COPY main.py .
+COPY main.py booking_proxy.py ./
 
 USER appuser
 

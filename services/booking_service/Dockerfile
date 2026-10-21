@@ -14,7 +14,7 @@ RUN useradd --uid 10001 --no-create-home --shell /usr/sbin/nologin appuser \
     && mkdir -p /data \
     && chown appuser:appuser /data
 
-COPY main.py database.py ./
+COPY main.py database.py auth.py ./
 
 USER appuser
 
