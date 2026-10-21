@@ -1,4 +1,5 @@
-
+from urllib.parse import quote
+from fastapi import Query
 import os
 from datetime import datetime, timedelta, timezone
 
@@ -213,4 +214,16 @@ def cancel_booking(
         f"/bookings/{booking_id}/cancel",
         claims,
         "bookings:cancel",
+    )
+
+@router.get("/rooms/search")
+def search_rooms(
+    q: str = Query(min_length=1, max_length=100),
+    claims=Depends(current_user),
+):
+    return call_booking_service(
+        "GET",
+        f"/rooms/search?q={quote(q, safe='')}",
+        claims,
+        "rooms:read",
     )

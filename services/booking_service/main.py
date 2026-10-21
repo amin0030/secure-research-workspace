@@ -3,7 +3,7 @@ import sqlite3
 from contextlib import asynccontextmanager, closing
 from datetime import datetime, timezone
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
 
 from auth import require_student, verify_token
@@ -334,3 +334,23 @@ def get_confirmation(
         "booking_id": booking_id,
         "content": saved["content"],
     }
+
+@app.get("/rooms/search")
+def search_rooms_secure(
+    q: str = Query(min_length=1, max_length=100),
+    claims=Depends(verify_token),
+):
+    sql = (
+        "SELECT id, name, capacity FROM rooms "
+        "WHERE is_active = 1 "
+        "AND name LIKE ? "
+        "ORDER BY id"
+    )
+
+    with closing(get_connection()) as connection:
+        rows = connection.execute(
+            sql,
+            (f"%{q}%",),
+        ).fetchall()
+
+    return {"rooms": [dict(row) for row in rows]}
