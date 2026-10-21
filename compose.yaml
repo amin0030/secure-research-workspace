@@ -1,3 +1,4 @@
+
 services:
   booking_service:
     build:
@@ -10,6 +11,16 @@ services:
       - booking_data:/data
     restart: unless-stopped
 
+  confirmation_service:
+    build:
+      context: .
+      dockerfile: services/confirmation_service/Dockerfile
+    env_file:
+      - .env.confirmation.local
+    environment:
+      BOOKING_SERVICE_URL: http://booking_service:8001
+    restart: unless-stopped
+
   app_api:
     build:
       context: ./services/app_api
@@ -17,10 +28,12 @@ services:
       - .env.local
     environment:
       BOOKING_SERVICE_URL: http://booking_service:8001
+      CONFIRMATION_SERVICE_URL: http://confirmation_service:8002
     ports:
       - "127.0.0.1:18000:8000"
     depends_on:
       - booking_service
+      - confirmation_service
     restart: unless-stopped
 
 volumes:

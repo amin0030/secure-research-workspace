@@ -134,3 +134,7 @@ def login(data: LoginInput):
 from booking_proxy import router as booking_router
 
 app.include_router(booking_router)
+
+from confirmation_proxy import router as confirmation_router
+
+app.include_router(confirmation_router)

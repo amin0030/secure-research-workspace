@@ -1,0 +1,12 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "campus-confirmation-helper"
+version = "0.1.0"
+description = "Confirmation helper for the Campus Room Booking System"
+requires-python = ">=3.12"
+
+[tool.setuptools.packages.find]
+where = ["src"]

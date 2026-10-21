@@ -227,3 +227,110 @@ def cancel_booking(
         "booking_id": booking_id,
         "status": "cancelled",
     }
+
+class ConfirmationInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    content: str = Field(min_length=1, max_length=2000)
+
+
+@app.post("/bookings/{booking_id}/confirmation")
+def save_confirmation(
+    booking_id: int,
+    confirmation: ConfirmationInput,
+    claims=Depends(require_student("confirmations:store")),
+):
+    owner = claims["sub"]
+
+    if (
+        f"Booking ID: {booking_id}\n" not in confirmation.content
+        or f"Student: {owner}\n" not in confirmation.content
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail="Confirmation does not match booking",
+        )
+
+    with closing(get_connection()) as connection:
+        with connection:
+            connection.execute("BEGIN IMMEDIATE")
+
+            booking = connection.execute(
+                """
+                SELECT id
+                FROM bookings
+                WHERE id = ?
+                  AND owner_user_id = ?
+                  AND status = 'active'
+                """,
+                (booking_id, owner),
+            ).fetchone()
+
+            if booking is None:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Active booking not found",
+                )
+
+            cursor = connection.execute(
+                """
+                INSERT OR IGNORE INTO confirmations
+                    (booking_id, content)
+                VALUES (?, ?)
+                """,
+                (booking_id, confirmation.content),
+            )
+
+            if cursor.rowcount == 1:
+                connection.execute(
+                    """
+                    INSERT INTO audit_events
+                        (actor_user_id, action, booking_id)
+                    VALUES (?, ?, ?)
+                    """,
+                    (owner, "confirmation_created", booking_id),
+                )
+
+            saved = connection.execute(
+                """
+                SELECT content
+                FROM confirmations
+                WHERE booking_id = ?
+                """,
+                (booking_id,),
+            ).fetchone()
+
+    return {
+        "booking_id": booking_id,
+        "content": saved["content"],
+    }
+
+
+@app.get("/bookings/{booking_id}/confirmation")
+def get_confirmation(
+    booking_id: int,
+    claims=Depends(require_student("confirmations:read")),
+):
+    with closing(get_connection()) as connection:
+        saved = connection.execute(
+            """
+            SELECT c.content
+            FROM confirmations AS c
+            JOIN bookings AS b
+              ON b.id = c.booking_id
+            WHERE b.id = ?
+              AND b.owner_user_id = ?
+            """,
+            (booking_id, claims["sub"]),
+        ).fetchone()
+
+    if saved is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Confirmation not found",
+        )
+
+    return {
+        "booking_id": booking_id,
+        "content": saved["content"],
+    }
