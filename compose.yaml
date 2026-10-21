@@ -1,0 +1,27 @@
+services:
+  booking_service:
+    build:
+      context: ./services/booking_service
+    env_file:
+      - .env.booking.local
+    environment:
+      BOOKING_DB_PATH: /data/booking.sqlite3
+    volumes:
+      - booking_data:/data
+    restart: unless-stopped
+
+  app_api:
+    build:
+      context: ./services/app_api
+    env_file:
+      - .env.local
+    environment:
+      BOOKING_SERVICE_URL: http://booking_service:8001
+    ports:
+      - "127.0.0.1:18000:8000"
+    depends_on:
+      - booking_service
+    restart: unless-stopped
+
+volumes:
+  booking_data:
