@@ -55,5 +55,11 @@ pipeline {
                 sh '.ci-venv/bin/python -m unittest discover -s tests -p "test_confirmation_scope.py" -v'
             }
         }
+
+        stage('Helper Package Tests') {
+            steps {
+                sh '.ci-venv/bin/python -m unittest discover -s tests -p "test_confirmation_helper.py" -v'
+            }
+        }
     }
 }
