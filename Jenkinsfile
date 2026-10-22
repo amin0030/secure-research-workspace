@@ -29,7 +29,7 @@ pipeline {
                 sh '''
                     python3 -m venv .ci-venv
                     .ci-venv/bin/python -m pip install -r services/confirmation_service/requirements.txt
-                    .ci-venv/bin/python -m pip install ./packages/campus_confirmation httpx==0.28.1 bandit==1.9.4
+                    .ci-venv/bin/python -m pip install ./packages/campus_confirmation httpx==0.28.1 bandit==1.9.4 pip-audit==2.10.1
                 '''
             }
         }
@@ -37,6 +37,16 @@ pipeline {
         stage('SAST - Bandit') {
             steps {
                 sh '.ci-venv/bin/bandit -r services packages/campus_confirmation/src -ll -ii'
+            }
+        }
+
+        stage('SCA - Dependency Audit') {
+            steps {
+                sh '''
+                    .ci-venv/bin/pip-audit --strict -r services/app_api/requirements.txt
+                    .ci-venv/bin/pip-audit --strict -r services/booking_service/requirements.txt
+                    .ci-venv/bin/pip-audit --strict -r services/confirmation_service/requirements.txt
+                '''
             }
         }
 
