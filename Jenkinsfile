@@ -7,6 +7,10 @@ pipeline {
         disableConcurrentBuilds()
     }
 
+    triggers {
+        pollSCM('H/5 * * * *')
+    }
+
     stages {
         stage('Python Version') {
             steps {
