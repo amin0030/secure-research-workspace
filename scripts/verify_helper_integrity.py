@@ -30,9 +30,12 @@ def calculate_hashes():
             continue
 
         name = relative.as_posix()
-        results[name] = hashlib.sha256(
-            path.read_bytes()
-        ).hexdigest()
+        content = path.read_bytes()
+
+        if path.suffix in {".py", ".toml"}:
+            content = content.replace(b"\r\n", b"\n")
+
+        results[name] = hashlib.sha256(content).hexdigest()
 
     return results
 
