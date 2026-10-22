@@ -19,5 +19,21 @@ pipeline {
                 sh 'python3 -m compileall -q services packages tests'
             }
         }
+
+        stage('Install Test Dependencies') {
+            steps {
+                sh '''
+                    python3 -m venv .ci-venv
+                    .ci-venv/bin/python -m pip install -r services/confirmation_service/requirements.txt
+                    .ci-venv/bin/python -m pip install ./packages/campus_confirmation httpx==0.28.1
+                '''
+            }
+        }
+
+        stage('Confirmation Security Tests') {
+            steps {
+                sh '.ci-venv/bin/python -m unittest discover -s tests -p "test_confirmation_scope.py" -v'
+            }
+        }
     }
 }
