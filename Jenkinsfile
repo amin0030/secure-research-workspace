@@ -66,5 +66,11 @@ pipeline {
                 sh '.ci-venv/bin/python -m unittest discover -s tests -p "test_confirmation_helper.py" -v'
             }
         }
+        stage('Helper Integrity Security Tests') {
+            steps {
+                sh '.ci-venv/bin/python -m unittest discover -s tests -p "test_helper_integrity.py" -v'
+            }
+        }
+
     }
 }
