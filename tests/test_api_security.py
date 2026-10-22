@@ -1,5 +1,5 @@
-
 import json
+import os
 import secrets
 import unittest
 from datetime import datetime, timedelta, timezone
@@ -8,8 +8,10 @@ from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 
-BASE_URL = "http://127.0.0.1:18000"
-
+BASE_URL = os.environ.get(
+    "CAMPUS_TEST_BASE_URL",
+    "http://127.0.0.1:18000",
+)
 
 def api_request(method, path, token=None, payload=None):
     headers = {}
@@ -42,14 +44,35 @@ class SecurityWorkflowTests(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        env_file = Path(__file__).resolve().parents[1] / ".env.local"
+        usernames = ("amin", "casper", "rasmus")
+        keys = [
+            f"CAMPUS_PASSWORD_{username.upper()}"
+            for username in usernames
+        ]
 
-        values = dict(
-            line.split("=", 1)
-            for line in env_file.read_text(encoding="utf-8").splitlines()
-            if "=" in line and not line.startswith("#")
-        )
+        values = {
+            key: os.environ[key]
+            for key in keys
+            if os.environ.get(key)
+        }
 
+        if len(values) != len(keys):
+            env_file = Path(__file__).resolve().parents[1] / ".env.local"
+
+            if not env_file.is_file():
+                raise RuntimeError("Required test passwords are missing")
+
+            local_values = dict(
+                line.split("=", 1)
+                for line in env_file.read_text(encoding="utf-8").splitlines()
+                if "=" in line and not line.startswith("#")
+            )
+            for key in keys:
+                if key not in values:
+                    if not local_values.get(key):
+                        raise RuntimeError(f"{key} is missing")
+
+                    values[key] = local_values[key]
         cls.tokens = {}
 
         for username in ("amin", "casper", "rasmus"):

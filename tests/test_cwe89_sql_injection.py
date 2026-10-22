@@ -1,15 +1,27 @@
 
+import os
 import unittest
 from pathlib import Path
 
 import httpx
 
 
-BASE_URL = "http://127.0.0.1:18000"
+BASE_URL = os.environ.get(
+    "CAMPUS_TEST_BASE_URL",
+    "http://127.0.0.1:18000",
+)
 
 
 def get_amin_password():
+    password = os.environ.get("CAMPUS_PASSWORD_AMIN")
+
+    if password:
+        return password
+
     env_file = Path(__file__).resolve().parents[1] / ".env.local"
+
+    if not env_file.is_file():
+        raise RuntimeError("CAMPUS_PASSWORD_AMIN is missing")
 
     for line in env_file.read_text(encoding="utf-8").splitlines():
         if line.startswith("CAMPUS_PASSWORD_AMIN="):
