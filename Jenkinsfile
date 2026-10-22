@@ -23,6 +23,11 @@ pipeline {
                 sh 'python3 -m compileall -q services packages tests'
             }
         }
+        stage('Helper Integrity Gate') {
+            steps {
+                sh 'python3 scripts/verify_helper_integrity.py'
+            }
+        }
 
         stage('Install Test Dependencies') {
             steps {
