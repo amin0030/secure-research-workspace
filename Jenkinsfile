@@ -76,5 +76,15 @@ pipeline {
                 sh '.ci-venv/bin/python scripts/run_ci_integration.py'
             }
         }
+        stage('Build Helper Wheel Artifact') {
+            steps {
+                sh '''
+                    mkdir -p dist
+                    .ci-venv/bin/python -m pip wheel --no-deps --wheel-dir dist ./packages/campus_confirmation
+                    sha256sum dist/*.whl
+                '''
+                archiveArtifacts artifacts: 'dist/*.whl', fingerprint: true
+            }
+        }
     }
 }
