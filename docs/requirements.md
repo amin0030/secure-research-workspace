@@ -53,8 +53,8 @@ The system uses four seeded accounts.
 Students can search for study rooms, create bookings, manage their own reservations, and generate booking confirmations.
 
 
+The administrator can activate or deactivate existing rooms. Booking and confirmation operations require the student role. The current implementation does not provide an administrator endpoint for system-wide booking metadata.
 
-The administrator can additionally manage room availability and view system wide booking metadata.
 
 
 
@@ -74,17 +74,17 @@ Administrative privileges do not automatically grant access to other students' p
 
 | FR2 | View and search available rooms | Authenticated users can retrieve and search available study rooms |
 
-| FR3 | Create bookings | Authenticated users can reserve available rooms using valid booking information |
+| FR3 | Create bookings | Authenticated students can reserve available rooms using valid booking information |
 
-| FR4 | Manage bookings | Users can view and cancel their own bookings |
+| FR4 | Manage bookings | Students can view and cancel their own bookings |
 
 | FR5 | Generate confirmations | All three application services participate in confirmation generation |
 
-| FR6 | Retrieve confirmations | Users can retrieve confirmations belonging to their own bookings |
+| FR6 | Retrieve confirmations | Students can retrieve confirmations belonging to their own bookings |
 
-| FR7 | Administrator room management | Only the administrator can create or modify rooms |
+| FR7 | Administrator room management | Only the administrator can activate or deactivate existing rooms |
 
-| FR8 | Administrator booking metadata | Only the administrator can retrieve system wide booking metadata |
+| FR8 | Restricted room management | Student requests to change room availability are rejected with HTTP 403 |
 
 | FR9 | Prevent booking conflicts | Overlapping active bookings for the same room are rejected |
 

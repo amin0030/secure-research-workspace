@@ -88,3 +88,21 @@ def require_student(permission: str):
         return claims
 
     return check_access
+
+def require_admin(permission: str):
+    def check_access(claims=Depends(verify_token)):
+        if claims.get("role") != "admin":
+            raise HTTPException(
+                status_code=403,
+                detail="Administrator role required",
+            )
+
+        if permission not in claims["permissions"]:
+            raise HTTPException(
+                status_code=403,
+                detail="Permission denied",
+            )
+
+        return claims
+
+    return check_access

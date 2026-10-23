@@ -40,7 +40,7 @@ All students have the same permissions, but their bookings and confirmations rem
 
 
 
-The administrator may perform ordinary user operations on personally owned resources and additional administrative operations.
+The administrator has a separate privileged role for managing room availability. Booking and confirmation operations require the student role.
 
 
 
@@ -48,37 +48,25 @@ The administrator may perform ordinary user operations on personally owned resou
 
 
 
+
 | Operation | Student | Administrator |
-
 |---|---|---|
-
 | Authenticate | Allow | Allow |
-
-| View available rooms | Allow | Allow |
-
-| Create own booking | Allow | Allow |
-
-| View own booking | Allow | Allow |
-
+| View and search available rooms | Allow | Allow |
+| Create own booking | Allow | Deny |
+| View own booking | Allow | Deny |
 | View another user's private booking | Deny | Deny |
-
-| Cancel own booking | Allow | Allow |
-
+| Cancel own booking | Allow | Deny |
 | Cancel another user's booking | Deny | Deny |
-
-| Generate confirmation for own booking | Allow | Allow |
-
-| Retrieve own confirmation | Allow | Allow |
-
+| Generate confirmation for own booking | Allow | Deny |
+| Retrieve own confirmation | Allow | Deny |
 | Retrieve another user's confirmation | Deny | Deny |
-
-| Create or modify rooms | Deny | Allow |
-
-| View system-wide booking metadata | Deny | Allow |
+| Activate or deactivate existing rooms | Deny | Allow |
 
 
 
-Administrative access to booking metadata does not grant access to all private booking details or confirmations.
+
+The current implementation does not provide a system-wide booking metadata endpoint. Administrator privileges do not grant access to private student bookings or confirmations.
 
 
 
@@ -148,7 +136,7 @@ The booking owner is determined from the authenticated identity and must not be 
 
 
 
-The administrator may manage rooms and inspect booking metadata. Administrative status does not automatically allow access to every student's private booking details.
+The administrator may activate or deactivate existing rooms. The administrator cannot create student bookings or access students' private booking details or confirmations.
 
 
 

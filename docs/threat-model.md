@@ -56,7 +56,9 @@ Students can search for available rooms, create bookings, manage their own reser
 
 
 
-The administrator can additionally manage rooms and access system wide booking metadata.
+
+The administrator can activate or deactivate existing rooms. The administrator cannot create student bookings or access private student bookings and confirmations. The current implementation does not provide system-wide booking metadata access.
+
 
 
 
@@ -798,7 +800,9 @@ Security testing will include:
 
 
 
-Security tests will be automated using pytest.
+
+Security tests are automated using Python unittest, including API integration tests, authorization regression tests, and helper package integrity tests.
+
 
 
 

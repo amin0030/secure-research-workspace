@@ -1,14 +1,13 @@
-from urllib.parse import quote
-from fastapi import Query
+
 import os
 from datetime import datetime, timedelta, timezone
+from urllib.parse import quote
 
 import httpx
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field
-from datetime import datetime as DateTime
 
 
 router = APIRouter()
@@ -19,8 +18,14 @@ class BookingInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     room_id: int = Field(gt=0)
-    starts_at: DateTime
-    ends_at: DateTime
+    starts_at: datetime
+    ends_at: datetime
+
+
+class RoomAvailabilityInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    is_active: bool
 
 
 def current_user(
@@ -83,6 +88,16 @@ def student_user(claims=Depends(current_user)):
         raise HTTPException(
             status_code=403,
             detail="Student role required",
+        )
+
+    return claims
+
+
+def admin_user(claims=Depends(current_user)):
+    if claims["role"] != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Administrator role required",
         )
 
     return claims
@@ -166,7 +181,25 @@ def call_booking_service(
 @router.get("/rooms")
 def list_rooms(claims=Depends(current_user)):
     return call_booking_service(
-        "GET", "/rooms", claims, "rooms:read"
+        "GET",
+        "/rooms",
+        claims,
+        "rooms:read",
+    )
+
+
+@router.patch("/rooms/{room_id}/availability")
+def update_room_availability(
+    data: RoomAvailabilityInput,
+    room_id: int = Path(gt=0),
+    claims=Depends(admin_user),
+):
+    return call_booking_service(
+        "PATCH",
+        f"/rooms/{room_id}/availability",
+        claims,
+        "rooms:manage",
+        data.model_dump(),
     )
 
 
@@ -187,7 +220,10 @@ def create_booking(
 @router.get("/bookings")
 def list_bookings(claims=Depends(student_user)):
     return call_booking_service(
-        "GET", "/bookings", claims, "bookings:read"
+        "GET",
+        "/bookings",
+        claims,
+        "bookings:read",
     )
 
 
@@ -215,6 +251,7 @@ def cancel_booking(
         claims,
         "bookings:cancel",
     )
+
 
 @router.get("/rooms/search")
 def search_rooms(

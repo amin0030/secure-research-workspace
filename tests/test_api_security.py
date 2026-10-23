@@ -235,5 +235,68 @@ class SecurityWorkflowTests(unittest.TestCase):
         self.assertEqual(status, 404)
 
 
+    def test_08_student_cannot_manage_room(self):
+        status, _ = api_request(
+            "PATCH",
+            "/rooms/3/availability",
+            self.tokens["amin"],
+            {"is_active": False},
+        )
+
+        self.assertEqual(status, 403)
+
+        status, result = api_request(
+            "GET",
+            "/rooms",
+            self.tokens["amin"],
+        )
+
+        self.assertEqual(status, 200)
+        self.assertIn(3, [room["id"] for room in result["rooms"]])
+
+    def test_09_admin_can_manage_room(self):
+        try:
+            status, result = api_request(
+                "PATCH",
+                "/rooms/3/availability",
+                self.tokens["rasmus"],
+                {"is_active": False},
+            )
+
+            self.assertEqual(status, 200)
+            self.assertEqual(result["is_active"], False)
+
+            status, result = api_request(
+                "GET",
+                "/rooms",
+                self.tokens["amin"],
+            )
+
+            self.assertEqual(status, 200)
+            self.assertNotIn(
+                3,
+                [room["id"] for room in result["rooms"]],
+            )
+        finally:
+            status, result = api_request(
+                "PATCH",
+                "/rooms/3/availability",
+                self.tokens["rasmus"],
+                {"is_active": True},
+            )
+
+            self.assertEqual(status, 200)
+            self.assertEqual(result["is_active"], True)
+
+        status, result = api_request(
+            "GET",
+            "/rooms",
+            self.tokens["amin"],
+        )
+
+        self.assertEqual(status, 200)
+        self.assertIn(3, [room["id"] for room in result["rooms"]])
+
+
 if __name__ == "__main__":
     unittest.main()

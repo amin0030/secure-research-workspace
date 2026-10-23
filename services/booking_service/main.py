@@ -3,10 +3,10 @@ import sqlite3
 from contextlib import asynccontextmanager, closing
 from datetime import datetime, timezone
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Path, Query
 from pydantic import BaseModel, ConfigDict, Field
 
-from auth import require_student, verify_token
+from auth import require_admin, require_student, verify_token
 from database import get_connection, initialize_database
 
 
@@ -71,6 +71,35 @@ def list_rooms(claims=Depends(verify_token)):
 
     return {"rooms": [dict(row) for row in rows]}
 
+class RoomAvailabilityInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    is_active: bool
+
+
+@app.patch("/rooms/{room_id}/availability")
+def update_room_availability(
+    data: RoomAvailabilityInput,
+    room_id: int = Path(gt=0),
+    claims=Depends(require_admin("rooms:manage")),
+):
+    with closing(get_connection()) as connection:
+        with connection:
+            cursor = connection.execute(
+                "UPDATE rooms SET is_active = ? WHERE id = ?",
+                (int(data.is_active), room_id),
+            )
+
+            if cursor.rowcount == 0:
+                raise HTTPException(
+                    status_code=404,
+                    detail="Room not found",
+                )
+
+    return {
+        "room_id": room_id,
+        "is_active": data.is_active,
+    }
 
 @app.post("/bookings", status_code=201)
 def create_booking(

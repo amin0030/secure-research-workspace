@@ -4,7 +4,9 @@
 
 Campus Room Booking System is a small, security-focused application developed for Software Security Assignment I at Aarhus University.
 
-The application allows students to browse and book study rooms, manage their own bookings, and request booking confirmations. An administrator has a separate privileged role.
+
+The application allows students to browse and book study rooms, manage their own bookings, and request booking confirmations. A separate administrator role can activate or deactivate existing rooms but cannot create student bookings or access students' private bookings and confirmations.
+
 
 The purpose of the project is to demonstrate secure authentication, authorization across service boundaries, vulnerability investigation, and automated security testing.
 
@@ -228,16 +230,18 @@ Run the integration and regression tests:
 .\.venv\Scripts\python.exe scripts/run_ci_integration.py
 ```
 
-The CI test suite contains 18 tests in total:
+The CI test suite contains 20 tests in total:
 
 - 2 confirmation authorization tests
 - 3 helper package tests
 - 4 helper integrity tests
-- 9 integration and security regression tests
+- 11 integration and security regression tests
 
 The integration test runner starts temporary instances of all three services, uses temporary test data and credentials, and stops the services after testing.
 
-The tests cover authentication, roles, booking ownership, service authorization, booking validation, overlapping bookings, confirmations, SQL injection prevention, and timezone validation.
+
+The tests cover authentication, roles, administrator-only room availability management, booking ownership, service authorization, booking validation, overlapping bookings, confirmations, SQL injection prevention, and timezone validation.
+
 
 ## 9. Security architecture
 
