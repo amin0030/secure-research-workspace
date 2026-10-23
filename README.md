@@ -310,7 +310,8 @@ A successful security build therefore provides both a test outcome and retrievab
 
 This project is intended for a controlled educational environment, not production deployment.
 
-A production system would require additional controls, such as secret management, TLS, authenticated service networking, stronger deployment isolation, persistent audit logging, controlled dependency approval, backup and recovery procedures, and formal release reviews.
+A production system would require additional controls, such as secret management, TLS, authenticated service networking, stronger deployment isolation, persistent audit logging, security monitoring and alerting, controlled dependency approval, backup and recovery procedures, and formal release reviews.
+
 
 The local Jenkins and Docker configuration demonstrates a security-oriented development workflow but does not replace production infrastructure security.
 
