@@ -20,9 +20,14 @@ pipeline {
 
         stage('Python Syntax Check') {
             steps {
-                sh 'python3 -m compileall -q services packages tests'
+                sh '''
+                    rm -rf ci-reports
+                    mkdir -p ci-reports
+                    python3 -m compileall -q services packages tests
+                '''
             }
         }
+
         stage('Helper Integrity Gate') {
             steps {
                 sh 'python3 scripts/verify_helper_integrity.py'
@@ -41,41 +46,100 @@ pipeline {
 
         stage('SAST - Bandit') {
             steps {
-                sh '.ci-venv/bin/bandit -r services packages/campus_confirmation/src -ll -ii'
+                sh '''
+                    .ci-venv/bin/bandit -r services packages/campus_confirmation/src -ll -ii -f json -o ci-reports/bandit.json
+                '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'ci-reports/bandit.json', allowEmptyArchive: true
+                }
             }
         }
 
         stage('SCA - Dependency Audit') {
             steps {
                 sh '''
-                    .ci-venv/bin/pip-audit --strict -r services/app_api/requirements.txt
-                    .ci-venv/bin/pip-audit --strict -r services/booking_service/requirements.txt
-                    .ci-venv/bin/pip-audit --strict -r services/confirmation_service/requirements.txt
+                    .ci-venv/bin/pip-audit --strict -f json -o ci-reports/app-api-audit.json -r services/app_api/requirements.txt
+                    .ci-venv/bin/pip-audit --strict -f json -o ci-reports/booking-audit.json -r services/booking_service/requirements.txt
+                    .ci-venv/bin/pip-audit --strict -f json -o ci-reports/confirmation-audit.json -r services/confirmation_service/requirements.txt
                 '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'ci-reports/*-audit.json', allowEmptyArchive: true
+                }
             }
         }
 
         stage('Confirmation Security Tests') {
             steps {
-                sh '.ci-venv/bin/python -m unittest discover -s tests -p "test_confirmation_scope.py" -v'
+                sh '''
+                    set +e
+                    .ci-venv/bin/python -m unittest discover -s tests -p "test_confirmation_scope.py" -v > ci-reports/confirmation-tests.txt 2>&1
+                    result=$?
+                    cat ci-reports/confirmation-tests.txt
+                    exit "$result"
+                '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'ci-reports/confirmation-tests.txt', allowEmptyArchive: true
+                }
             }
         }
 
         stage('Helper Package Tests') {
             steps {
-                sh '.ci-venv/bin/python -m unittest discover -s tests -p "test_confirmation_helper.py" -v'
+                sh '''
+                    set +e
+                    .ci-venv/bin/python -m unittest discover -s tests -p "test_confirmation_helper.py" -v > ci-reports/helper-package-tests.txt 2>&1
+                    result=$?
+                    cat ci-reports/helper-package-tests.txt
+                    exit "$result"
+                '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'ci-reports/helper-package-tests.txt', allowEmptyArchive: true
+                }
             }
         }
+
         stage('Helper Integrity Security Tests') {
             steps {
-                sh '.ci-venv/bin/python -m unittest discover -s tests -p "test_helper_integrity.py" -v'
+                sh '''
+                    set +e
+                    .ci-venv/bin/python -m unittest discover -s tests -p "test_helper_integrity.py" -v > ci-reports/helper-integrity-tests.txt 2>&1
+                    result=$?
+                    cat ci-reports/helper-integrity-tests.txt
+                    exit "$result"
+                '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'ci-reports/helper-integrity-tests.txt', allowEmptyArchive: true
+                }
             }
         }
+
         stage('CI Integration Security Tests') {
             steps {
-                sh '.ci-venv/bin/python scripts/run_ci_integration.py'
+                sh '''
+                    set +e
+                    .ci-venv/bin/python scripts/run_ci_integration.py > ci-reports/integration-tests.txt 2>&1
+                    result=$?
+                    cat ci-reports/integration-tests.txt
+                    exit "$result"
+                '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'ci-reports/integration-tests.txt', allowEmptyArchive: true
+                }
             }
         }
+
         stage('Build Helper Wheel Artifact') {
             steps {
                 sh '''
